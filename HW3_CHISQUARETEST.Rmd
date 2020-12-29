@@ -1,0 +1,199 @@
+---
+title: "Homework 3: Chi-Square Tests"
+author: "YOUR NAME HERE"
+output: html_notebook
+---
+
+This lab will cover Lab 3 on Chi-Square Tests - both Goodness of Fit (one variable) and Test of Independence (two variables).  You will use the same data from HW #2, specifically the two categorical variables we looked at in the grouped bar chart - educ and smartdumb.  Education will be the predictor variable or X variable, it is the variable we think will influence the Y variable or outcome variable, smartdumb.  The column smartdumb contains answers to the following question - 'If you had to choose: would you rather be smart and sad, or dumb and happy?'
+
+*Use alpha = 0.05 for any hypothesis tests.*
+
+**THERE ARE 35 POINTS TOTAL IN THIS HOMEWORK**
+
+```{r setup, include = FALSE}
+#load packages
+library(tidyverse) # includes ggplot2
+library(magrittr)
+
+## If you have not installed the packages below you will have to run install.packages() for each
+## before you can use them.
+
+library(DescTools) ## for phi and cramer's v functions
+library(pwr) ## for power function
+library(sjPlot) ## for tab_xtab
+library(webshot) ## to convert html objects to images
+
+# the following two are for the univariate PQ table in the FOURTH item PART A
+if (!requireNamespace("kableExtra", quietly = TRUE)) {  ## CHECKS TO SEE IF PKG IS INSTALLED
+  install.packages("kableExtra") ## INSTALLS IF IT'S NOT ALREADY INSTALLED
+}
+if (!requireNamespace("knitr", quietly = TRUE)) {
+  install.packages("knitr")
+}
+library(kableExtra)
+library(knitr)
+
+# if you haven't already, you will need these to save PQ items as images.
+# install.packages("magick")
+# webshot::install_phantomjs()
+```
+
+Now, load your .rds file.
+```{r loaddata}
+## LOAD THE RDS FILE
+```
+
+You may want to review the beginning of Lab 2 to re-familiarize yourself with the variables, the questions they represent, and how I cleaned the data.  
+
+#DATA CLEANING - [1 POINT]
+In the lab I left DK/REF as a category for both variables, educ and smartdumb.  Remove any observations from the df that contain DK/REF for one or both of the variables.
+```{r}
+## DO DATA CLEANING HERE
+
+## IN THE PQ OUTPUT ITEMS (GGPLOT, TABLES IN FOURTH QUESTION) YOU WILL BE ASKED TO HAVE YOUR FACTOR LEVELS FOR EDUCATION IN APPROPRIATE ORDER YOU MAY WISH TO DO THAT ONCE NOW AND SAVE TO YOUR DF
+
+```
+
+
+# FIRST QUESTION - 
+
+PART A [2 POINTS]: Conduct a Chi-square Goodness of Fit test on educ variable.  For the purpose of this analysis ignore observations with the value "Other" for education.  The expected proportions are:
+
+- High School = 32%
+- Some College = 31%
+- College Degree = 23%
+- Graduate = 13%
+
+*DO NOT INCLUDE "OTHER" CATEGORY*
+*MAKE SURE YOU SPECIFY YOUR EXPECTED PROPORTIONS IN THE SAME ORDER AS YOUR FACTOR LEVEL / OBSERVED FREQUENCIES*
+```{r}
+## ENTER PART A CODE HERE
+```
+
+
+PART B [2 POINTS]: Interpret the Chi-square GoF result. Does the observed frequency in your sample deviate from the expected proportions?  Is that deviation statistically significant?  In terms of the substantive interpretation - what does this potentially mean about the distribution of educ (i.e. not in "statistics words" but instead the "real life" meaning)?
+**ENTER PART B INTERPRETATION ANSWER HERE**
+
+
+# SECOND QUESTION - 
+
+PART A [2 POINTS]: Create a grouped bar chart (with ggplot2) of the two variables smartdumb by educ (similar to the FOURTH item in HW #4) but with percentages or proportions NOT frequencies.  There is an example of this plot (with proportions) in Lab 3 in the Effect Size (unstandardized) section.  Your grouping variable should be your predictor(X) and your bars inside the groups (fill) should be the outcome.  Don't forget to improve this ggplot to PQ quality - all labels improved to PQ including Legend title AND educ factor levels should be in order from least educated to most educated.
+```{r}
+## ENTER PART A CODE HERE
+```
+
+
+PART B [2 POINTS]: Discuss the difference in proportions of your fill(outcome) variable by level of your x(predictor) variable.  Do you think these variables are associated?  Why or why not?
+**ENTER PART B INTERPRETATION ANSWER HERE**
+
+
+# THIRD QUESTION -
+
+PART A [2 POINTS]: You're going to conduct a Chi-square Test of Independence between educ and smartdumb.  What are the appropriate null and alternative hypotheses, written in your words and not formulas from the slides.
+**H_0: PUT NULL HYPOTHESIS HERE**
+**H_A: PUT ALTERNATIVE HYPOTHSIS HERE**
+
+
+PART B [2 POINTS]: Now conduct a Chi-square Test of Independence on educ and smartdumb variables.
+```{r}
+## ENTER PART B CODE HERE
+```
+
+
+PART C [4 POINTS]: Interpret the result of the Test of Independence.  First, explain in statistical language if the null hypothesis is rejected and why.  Then explain what that means about the relationship between the two variables in non-statistical words. Be thorough in your explanation.
+**ENTER PART C INTERPRETATION ANSWER HERE**
+
+
+PART D [1 POINT]: Calculate the effect size releated to the ToI you ran in PART B.
+```{r}
+## ENTER PART D CODE HERE
+```
+
+
+PART E [4 POINTS]: Reviewing the grouped bar chart in the SECOND QUESTION, as well as any two-way tables you may have generated, what is the unstandardized effect size?  Then, report the standardized effect size calculated in PART D and interpret that value. Compare your interpretation of the unstandardized significance and the standardized significance.  Is your analysis substantively significant and why?
+**ENTER PART E INTERPRETATION ANSWER HERE**
+
+
+PART F [2 POINTS]: Conduct a power analysis.  
+
+*If your conclusion in PART C was that educ and smartdumb are independent, determine the power of your analysis given the observed effect size, the sample size, degrees of freedom, and an alpha of 0.05 from this analysis.*
+
+*If your conclusion in PART C was that educ and smartdumb are associated, determine the smallest sample size you could have to get a power of 0.8 given the effect size, degrees of freedom, and alpha from this analysis*
+```{r}
+## ENTER PART F CODE HERE
+```
+
+
+PART G [2 POINTS]: Interpret the power analysis you ran.  
+ - If you calculated the power, explain that value and what it means about the possible error in our hypothesis test.  
+ - If you calculated minimum sample size, explain that result and what it means for a similar analysis.
+**ENTER PART G INTERPRETATION ANSWER HERE**
+
+# FOURTH QUESTION -
+
+PART A [4 POINTS]: Using the skeleton code provided, create a PQ table that includes the univariate summaries (frequency and proportions) for each variable (educ and smartdumb) separately.  
+
+One table overall, but frequencies and percentages for each variable separately.
+
+*Percentages need to be formatted with % and rounded to one decimal point.* 
+round() will round a number to a specific number of digits after the decimal point.  paste() or paste0() will allow you to make a character variable combining a number with a string character, like "%"
+
+*Factor Levels need to be ordered appropriately with "Other" at the end of the list.*
+```{r}
+### COMPLETE PART A CODE HERE
+
+# create two dataframes, each with three columns, Category, Frequency, and Percent.  These should be created with group_by() and summarize() and show the frequency and percent of each level of the variable.  Remember that group_by() and summarize() return the summary in the form of a dataframe.
+# Make sure to format the percentage values with one decimal point and add a % sign.
+
+
+#make sure the first column name in each of the two dfs is "Category" and not the name of the variable (which is the default)
+
+## combine the two dataframes into one combined dataframe using rbind().  Your educ variable should be "stacked" on top of your smartdumb variable.
+
+df_cat <- rbind(nameoffirstdf, nameofseconddf)
+
+## create table with kable
+
+tname <- "PUT DESCRIPTIVE PQ TITLE FOR TABLE"
+titlehead <- c(tname = 3)
+names(titlehead) <- tname
+
+unicat <- df_cat %>% kable(booktabs = T, align = "lcc") %>% 
+    kable_styling(full_width = FALSE) %>% 
+    pack_rows("", , ) %>%  ## pack_rows() takes three arguments. First the descriptive label you want for your first variable, second the first row that contains the first category of that variable and third the last row that contains the last category for that variable
+    pack_rows("", , ) %>% 
+    add_header_above(header = titlehead, align = "l",
+                     extra_css = "border-top: solid; border-bottom: double;") %>%
+    row_spec(0, extra_css = "border-bottom: solid;") %>% 
+    row_spec(nrow(df_cat), extra_css = "border-bottom: solid;") 
+
+unicat
+## HTML will show below the code block, the rendered image will show in the RStudio Viewer Pane.
+
+```
+
+
+PART B [2 POINTS]: Using the example at the end of Lab 3, create a PQ two-way table for the relationship between education and smartdumb.  Include the appropriate option to show the frequencies of smartdumb WITHIN each group of education.  Your table should also show the Chi-squared value, df, Cramer's V, and p-value at the bottom of the table.  Make sure you have reordered your factors so that they display in the appropriate order in the table.
+```{r}
+## ENTER PART B CODE HERE
+
+## If you follow the example in the Lab you will end up saving an html file to your working directory.  Nothing will print to RStudio screen.
+```
+
+
+PART C [3 POINTS]: Write code to export your ggplot from the SECOND question, your table from FOURTH - PART A, and your table from FOURTH - PART B as images (.png or .jpeg).  Submit the 3 image files in ELMS in addition to this .rmd file.  The Part A table is created using the package "kable."
+```{r}
+## ENTER PART C CODE HERE
+
+# GGPLOT
+
+
+# PART A TABLE (kable)
+
+
+# PART B TABLE (from package sjPlot)
+
+
+```
+
+*MAKE SURE YOU SUBMIT 4 FILES TO ELMS - This .rmd file, including your name at the top and your name in the filename AND the three images created in FOURTH PART C.*

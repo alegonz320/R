@@ -1,0 +1,238 @@
+---
+title: "Homework 2: Descriptive Statistics and Visualizations - YOUR NAME HERE"
+output: html_notebook
+---
+
+```{r setup}
+#load packages
+
+library(tidyverse) # includes ggplot2
+
+library(flextable)
+library(webshot)
+## install.packages("ggpubr")
+library(ggpubr) # containes line/dot plot for visualizing means
+## install.packages("descr")
+library(descr) ## for "pretty" two-way table CrossTable()
+library(kableExtra)
+library(knitr)
+library(DescTools) ## for phi and cramer's v functions
+library(magrittr)
+library(pwr) ## for power function
+library(sjPlot) ## for tab_xtab
+```
+
+Now, load your .rds file.
+```{r}
+## LOAD THE XLSX FILE
+library(readxl)
+data_employ <- read_xlsx("2019_Data_Professional_Salary_Survey_Responses.xlsx")
+glimpse(data_employ)
+
+```
+
+
+
+```{r}
+## PUT CODE HERE FOR FIRST ITEM
+#Renaming the Columns
+newnames <- c("Survey Year", "Timestamp", "SalaryUSD", "Country", "PostalCode", "PrimaryDatabase", "YearsWithThisDatabase", "OtherDatabases", "EmploymentStatus", "JobTitle", "ManageStaff", "YearsWithThisTypeOfJob", "HowManyCompanies", "OtherPeopleOnYourTeam", "CompanyEmployeesOverall", "DatabaseServers", "Education", "EducationIsComputerRelated", "Certifications", "HoursWorkedPerWeek", "TelecommuteDaysPerWeek", "PopulationOfLargestCityWithin20Miles", "EmploymentSector", "LookingForAnotherJob", "CareerPlansThisYear", "Gender", "OtherJobDuties", "KindOfTasksPerformed", "Counter")
+
+colnames(data_employ) <- newnames
+colnames(data_employ)
+```
+```{r}
+
+dim(data_employ) ## print dimensions to show number of columns
+dataemploy_new <- data_employ %>% drop_na(Gender) #drop NA values from employment sector column
+
+dim(dataemploy_new) ## print dimensions to show change in number of columns
+sum(is.na(dataemploy_new$Gender)) #check to make sure the NA values have been dropped and this comes back as 0
+
+dim(data_employ) ## print dimensions to show number of columns
+dataemploy_new <- data_employ %>% drop_na(Education) #drop NA values from employment sector column
+dim(dataemploy_new) ## print dimensions to show change in number of columns
+sum(is.na(dataemploy_new$Education)) #check to make sure the NA values have been dropped and this comes back as 0
+
+
+glimpse(dataemploy_new)
+summary(dataemploy_new$EmploymentSector) #Statistics summary of salary
+summary(dataemploy_new$Gender) #Statistics summary of salary
+```
+
+```{r}
+## Renaming values in gender and filtering out invalid data
+
+dataemploy_new %>% count(Gender)
+gend <- c("Female", "Male", "There are only two genders for people, either male or female. I am a male.")
+educ <- c("Masters", "Doctorate", "Bachelors", "Associates", "No degree")
+
+```
+
+
+```{r}
+dataemploy_new %<>% 
+  filter(!Gender %in% c("Dragon","Prefer not to say","This question is inappropriate.", "Cyborg", "toad frog", "Meat Popsicle", "Muppet", "Vulcan", "Attack Helicopter", "Attackhelicopter with rabbitears and afro-icelandic teeth", "Attack Helicopter (M)", "Attack Helicopter. (serious dude, gender questions?)", "Apache Helicopter", "Reptilian", "Alien", "Pastafarian", "Grayson Perry", "confused", "Not Asked", "Gender", "Non-binary/third gender","Any human one"))
+
+dim(dataemploy_new)
+dataemploy_new %>% count(Gender)
+```
+
+
+```{r}
+## create factor with labels
+dataemploy_new %<>% mutate(GEND_cat = factor(Gender, labels = gend))
+dataemploy_new %<>% mutate(EDUC_cat = factor(Education, labels = educ))
+
+## SHOW FREQUENCY TABLE TO CONFIRM RESULTS 
+dataemploy_new %>% count(GEND_cat)
+```
+
+
+```{r}
+dataemploy_new %<>% mutate(GEND_cat = fct_recode(GEND_cat, 
+Male = "Male", 
+Male = "There are only two genders for people, either male or female. I am a male.",
+Female = "Female"))
+
+dataemploy_new %>% count(GEND_cat)
+```
+
+
+```{r}
+## PUT CODE HERE FOR SECOND ITEM
+gend_table <- 
+    dataemploy_new %>%
+    mutate(GEND_cat = fct_relevel(GEND_cat, "Male", "Female"))  %>% 
+    group_by(GEND_cat) %>% 
+    summarize(Frequency = n(), 
+    Percentage = n() / dim(dataemploy_new)[1])  %>% 
+    mutate(Percentage = paste0(format(Percentage * 100, digits = 2), "%")) 
+
+gend_table
+educ_table <- 
+    dataemploy_new %>%
+    mutate(Education = fct_relevel(EDUC_cat, "Doctorate/PhD", "Masters", "Bachelors",  "Associates", "No degree"))  %>% 
+    group_by(EDUC_cat) %>% 
+    summarize(Frequency = n(), 
+    Percentage = n() / dim(dataemploy_new)[1])  %>% 
+    mutate(Percentage = paste0(format(Percentage * 100, digits = 2), "%")) 
+
+educ_table
+
+
+#make sure the first column name in each of the two dfs is "Category" and not the name of the variable (which is the default)
+colnames(gend_table)[1] <- "Category"
+colnames(educ_table)[1] <- "Category"
+
+## combine the two dataframes into one combined dataframe using rbind().  Your educ variable should be "stacked" on top of your smartdumb variable.
+
+df_cat <- rbind(educ_table, gend_table)
+
+## create table with kable
+
+tname <- "Univariate Statistics for Categorical Variables"
+titlehead <- c(tname = 3)
+names(titlehead) <- tname
+
+unicat <- df_cat %>% kable(booktabs = T, align = "lcc") %>% 
+    kable_styling(full_width = FALSE) %>%
+    pack_rows("Education", 1 , 5, label_row_css = "background-color: rgb(255, 255, 255); color: black") %>% 
+  ## pack_rows() takes three arguments. First the descriptive label you want for your first variable, second the first row that contains the first category of that variable and third the last row that contains the last category for that variable
+    pack_rows("Gender", 6, 7, label_row_css = "background-color: rgb(255, 255, 255); color: black") %>% 
+    add_header_above(header = titlehead, align = "l", 
+                     background = "rgb(255, 255, 255)", color = "black", 
+                     extra_css = "border-top: solid; border-bottom: double;") %>%
+    column_spec((1:3), background = "rgb(255, 255, 255)", color = "black") %>%
+    row_spec(0, color = "black", background = "rgb(255, 255, 255)", extra_css = "border-bottom: solid;") %>% 
+    row_spec(nrow(df_cat), color = "black", extra_css = "border-bottom: solid;")
+
+unicat
+## HTML will show below the code block, the rendered image will show in the RStudio Viewer Pane.
+```
+
+
+
+
+```{r}
+# two-way table
+dataemploy_new %<>% 
+  mutate(EDUC_cat = fct_recode(EDUC_cat, 
+        Graduate = "Masters", 
+        Post_Secondary = "Bachelors", 
+        Post_Secondary = "Associates"))
+gend_tab <- table(dataemploy_new$EDUC_cat, dataemploy_new$GEND_cat)
+gend_tab
+#chisq.test
+chisq.test(gend_tab)
+gend_v_educ <- dataemploy_new %>% group_by(GEND_cat, EDUC_cat) %>% summarize(freq = n()) %>% ungroup() %>% group_by(GEND_cat) %>% 
+            mutate(pct_within_gend = freq / sum(freq) * 100)
+
+gend_v_educ
+gend_v_educ %>% 
+    # make the plot 
+    ggplot(aes(fill=EDUC_cat, y=pct_within_gend, x=GEND_cat)) + 
+      geom_bar(position="dodge", stat="identity") +
+      labs(x = "Gender",
+           y = "Percent",
+           fill = "Education Level",
+           title = "Percents from each gender by education level") +
+      ## optional customizations
+      theme(legend.position="bottom", 
+            text = bold.12.text) +
+      scale_fill_manual(values=c("#0000FF", "#000080", "#008080", "#C0C0C0")) +
+      ## add percentage labels at top of bars
+      geom_text(aes(label=paste0(round(pct_within_gend, 0),"%")), 
+                vjust=-.3, color="black", position = position_dodge(0.9), size=3)
+```
+
+
+
+```{r}
+## PUT CODE HERE FOR FOURTH ITEM
+gend_tab1 <- table(dataemploy_new$GEND_cat, dataemploy_new$EDUC_cat)
+gend_tab1
+chisq.test(gend_tab1)
+```
+The p-value is lower than 0.05. Therefore we reject null and conclude that these two variables are associated.
+
+```{r}
+## PUT CODE TO SAVE AND EXPORT GRAPH HERE
+gend_tab1 <- table(dataemploy_new$GEND_cat, dataemploy_new$EDUC_cat)
+CramerV(gend_tab1)
+```
+
+```{r}
+eff_size <- CramerV(gend_tab1)
+dof <- 3
+pwr.chisq.test(w = eff_size, N = NULL, df = dof, sig.level = 0.05, power = 0.8)
+```
+N = 1814.869
+
+```{r}
+## create two way table WITH chi-square
+tab_xtab(var.row = dataemploy_new$GEND_cat,
+         var.col = dataemploy_new$EDUC_cat, 
+         title = "Is there an association between gender and education level?",
+         var.labels = c("Gender", "Education Level"),
+         show.cell.prc = TRUE, 
+         show.row.prc = TRUE,
+         show.summary = TRUE, 
+         statistics = "phi",
+         file = "gend-educ.html"
+         )
+
+## If you follow the example in the Lab you will end up saving an html file to your working directory.  Nothing will print to RStudio screen.
+
+# from package sjPlot
+# GGPLOT
+ggsave("EducGendBox.png")
+
+# kable
+save_kable(unicat, "gend-educgg.png")
+
+webshot("gend-educ.html", "gend-educ.png")
+
+saveRDS(dataemploy_new, "P2_data_Gonzalez.rds") #saving RDS
+```
+

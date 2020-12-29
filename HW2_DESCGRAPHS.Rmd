@@ -1,0 +1,81 @@
+---
+title: "Homework 2: Descriptive Statistics and Visualizations - YOUR NAME HERE"
+output: html_notebook
+---
+
+This lab will cover Lab 2 on Descriptive Statistics and Visualizations (Charts and Graphs).  You will use the same data I used in the homework.  In the lab I loaded in the data from a .csv and performed a number of data cleaning steps.  I then saved that resulting dataframe as an .rds file, which I provided on ELMS.  So when you load the .rds your dataframe will be the clean version.
+
+**THERE ARE 25 POINTS TOTAL IN THIS HOMEWORK**
+
+```{r setup}
+#load packages
+library(tidyverse) # includes ggplot2
+
+## the following two are new.  If you have not yet installed these, comment out the installation lines the first time you run the code.
+
+## install.packages("ggpubr")
+library(ggpubr) # containes line/dot plot for visualizing means
+## install.packages("descr")
+library(descr) ## for "pretty" two-way table CrossTable()
+```
+
+Now, load your .rds file.
+```{r}
+## LOAD THE RDS FILE
+```
+
+You may want to review the beginning of Lab 2 to re-familiarize yourself with the variables, the questions they represent, and how I cleaned the data.  I created explicit "Missing" categories in the categorical variables that should not be removed as you work through this homework.  I used imputation to deal with missing data on numerical variables.
+
+## BIVARIATE STATISTICS
+We will start with a few questions that ask you to generate some bivariate statistics.
+
+FIRST -
+Create a table that includes the frequency of the different levels of "robots" as well as the mean, median, and standard deviation of "income" within each level. [2 POINTS]
+
+```{r}
+## PUT CODE HERE FOR FIRST ITEM
+```
+
+*EXPLAIN WHAT YOU SEE IN THE TABLE.  ARE THERE ANY DIFFERENCES IN INCOME BY R's RESPONSE ON LIKELIHOOD THAT ROBOTS WILL STEAL THEIR JOB? DO YOU HAVE ANY HYPOTHESES BASED ON WHAT YOU SEE IN THIS RESULT? [2 POINTS]*
+
+SECOND -
+Create a two-way table of "ghosts" by "sci_good".  Include both frequencies and percentages in your table. [2 POINTS]
+
+```{r}
+## PUT CODE HERE FOR SECOND ITEM
+```
+
+*EXPLAIN WHAT YOU SEE IN THE TABLE.  ARE THERE ANY DIFFERENCES IN BELIEF IN GHOSTS BY WHETHER OR NOT SOMEONE BELIEVES THAT SCIENTISTS ARE GOOD? DO YOU HAVE ANY HYPOTHESES BASED ON WHAT YOU SEE IN THIS RESULT?  DO YOU THINK THESE VARIABLES MIGHT BE ASSOCIATED? [3 POINTS]*
+
+## VISUALIZATIONS
+
+Now we will use ggplot2 to create a chart and a graph.
+
+THIRD -
+Create a graph that depicts the distribution of "transformers" by "gender."  Transformers is a numerical variable and you can choose from among the two ways I demonstrated how to display the distribution of a numerical variable by levels of a categorical variable in the lab. Your chart must include a descriptive title, descriptive axes labels, and descriptive axis tick labels if necessary (and they must be readable and not overlapping).  You can include any other customizations if you wish (such as changing from default colors, etc.) [4 POINTS]
+
+```{r}
+## PUT CODE HERE FOR THIRD ITEM
+```
+
+*EXPLAIN WHAT YOU SEE IN THE TABLE.  ARE THERE ANY DIFFERENCES IN NUMBER OF TRANSFORMER MOVIES SEEN BY GENDER? DO YOU HAVE ANY HYPOTHESES BASED ON WHAT YOU SEE IN THIS RESULT? [2 POINTS]*
+
+FOURTH - 
+Create a bar chart that shows the responses on "smartdumb" by "educ." (grouped bar chart)  You may need to do some research to figure out how to accomplish this.  The assignment page in ELMS shows some pictures of examples of what I mean by "grouped" bar chart.  Your chart must include a descriptive title, descriptive axes labels and descriptive axis tick labels if necessary (and they must be readable and not overlapping).  You can include any other customizations if you wish (such as changing from default colors, etc.) [5 POINTS]
+
+```{r}
+## PUT CODE HERE FOR FOURTH ITEM
+```
+
+*EXPLAIN WHAT YOU SEE IN THE TABLE.  ARE THERE ANY DIFFERENCES IN PREFERENCE FOR SMART/SAD VS. DUMB/HAPPY BY EDUCATIONAL LEVEL? DO YOU HAVE ANY HYPOTHESES BASED ON WHAT YOU SEE IN THIS RESULT?  DO YOU THINK THESE VARIABLES MIGHT BE ASSOCIATED? [3 POINTS]*
+
+## EXPORTING GGPLOT2 OBJECTS
+
+FIFTH - 
+Research how to save/export a ggplot object as an image file.  Save your ggplot object and export it to an image file.  Post that image file in addition to your .rmd in your homework submission. [2 POINTS]
+
+```{r}
+## PUT CODE TO SAVE AND EXPORT GRAPH HERE
+```
+
+

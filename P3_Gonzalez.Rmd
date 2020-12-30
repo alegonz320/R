@@ -1,0 +1,440 @@
+---
+title: "Project 3 - Marta Gonzalez"
+output: html_notebook
+---
+
+
+
+
+```{r setup}
+#load packages
+
+library(tidyverse) # includes ggplot2
+library(gridExtra)
+library(flextable)
+library(webshot)
+library(dplyr)
+library(magick)
+## install.packages("ggpubr")
+library(ggpubr) # containes line/dot plot for visualizing means
+## install.packages("descr")
+library(descr) ## for "pretty" two-way table CrossTable()
+library(kableExtra)
+library(knitr)
+library(scales)
+library(DescTools) ## for phi and cramer's v functions
+library(magrittr)
+library(pwr) ## for power function
+library(sjPlot) ## for tab_xtab
+library(gtrendsR)
+options(repr.plot.width=7, repr.plot.height=6)
+```
+
+Now, load your .xlsx file.
+```{r}
+## LOAD THE XLSX FILE
+library(readxl)
+data_emp <- read_xlsx("2019_Data_Professional_Salary_Survey_Responses.xlsx")
+glimpse(data_emp)
+```
+
+
+```{r}
+## PUT CODE HERE FOR FIRST ITEM
+#Renaming the Columns
+newnames <- c("Survey Year", "Timestamp", "SalaryUSD", "Country", "PostalCode", "PrimaryDatabase", "YearsWithThisDatabase", "OtherDatabases", "EmploymentStatus", "JobTitle", "ManageStaff", "YearsWithThisTypeOfJob", "HowManyCompanies", "OtherPeopleOnYourTeam", "CompanyEmployeesOverall", "DatabaseServers", "Education", "EducationIsComputerRelated", "Certifications", "HoursWorkedPerWeek", "TelecommuteDaysPerWeek", "PopulationOfLargestCityWithin20Miles", "EmploymentSector", "LookingForAnotherJob", "CareerPlansThisYear", "Gender", "OtherJobDuties", "KindOfTasksPerformed", "Counter")
+
+colnames(data_emp) <- newnames
+colnames(data_emp)
+```
+```{r}
+
+dim(data_emp) ## print dimensions to show number of columns
+dataemp_new <- data_emp %>% drop_na(EmploymentSector)
+dim(dataemp_new) ## print dimensions to show change in number of columns
+sum(is.na(dataemp_new$EmploymentSector)) 
+
+dim(data_emp) ## print dimensions to show number of columns
+dataemp_new <- data_emp %>% drop_na(Education) #drop NA values from education column
+dim(dataemp_new) ## print dimensions to show change in number of columns
+sum(is.na(dataemp_new$Education))
+
+dim(data_emp) ## print dimensions to show number of columns
+dataemp_new <- data_emp %>% drop_na(SalaryUSD) #drop NA values from salary column
+dim(dataemp_new) ## print dimensions to show change in number of columns
+sum(is.na(dataemp_new$SalaryUSD)) 
+glimpse(dataemp_new)
+summary(dataemp_new$SalaryUSD) 
+summary(dataemp_new$Education) #Statistics summary of salary
+summary(dataemp_new$EmploymentSector) #Statistics summary of salary
+```
+
+
+
+```{r}
+## PUT CODE HERE FOR SECOND ITEM
+dataemp_new %>% count(EmploymentSector)
+dataemp_new %>% count(Education)
+employ <- c("Federal Government", "Local Government", "State Government")
+educ <- c("Masters", "Associates", "No degree")
+
+dataemp_new %<>% 
+  filter(!EmploymentSector %in% c("Private business", "Student", "EmploymentSector", "Non-profit", "Education (K-12, college, university)"))
+dataemp_new %<>% 
+  filter(!Education %in% c("Bachelors (4 years)", "Doctorate/PhD"))
+
+dim(dataemp_new)
+dataemp_new %>% count(EmploymentSector)
+dim(dataemp_new)
+dataemp_new %>% count(Education)
+
+
+## create factor with labels
+dataemp_new %<>% mutate(EMP_cat = factor(EmploymentSector, labels = employ))
+dataemp_new %<>% mutate(EDUC_cat = factor(Education, labels = educ))
+
+```
+
+
+
+```{r}
+## PUT CODE HERE FOR THIRD ITEM
+## PUT CODE HERE FOR SECOND ITEM
+emp_table <- 
+    dataemp_new %>%
+    mutate(EMP_cat = fct_relevel(EMP_cat, "Education", "Federal Government", "Local Government", "State Government", "Non-Profit"))  %>% 
+    group_by(EMP_cat) %>% 
+    summarize(Frequency = n(), 
+    Percentage = n() / dim(dataemp_new)[1])  %>% 
+    mutate(Percentage = paste0(format(Percentage * 100, digits = 2), "%")) 
+
+emp_table
+edu_table <- 
+    dataemp_new %>%
+    mutate(Education = fct_relevel(EDUC_cat, "Doctorate/PhD", "Masters", "Bachelors",  "Associates", "No degree"))  %>% 
+    group_by(EDUC_cat) %>% 
+    summarize(Frequency = n(), 
+    Percentage = n() / dim(dataemp_new)[1])  %>% 
+    mutate(Percentage = paste0(format(Percentage * 100, digits = 2), "%")) 
+
+edu_table
+
+#make sure the first column name in each of the two dfs is "Category" and not the name of the variable (which is the default)
+colnames(emp_table)[1] <- "Category"
+colnames(edu_table)[1] <- "Category"
+
+## combine the two dataframes into one combined dataframe using rbind().  Your educ variable should be "stacked" on top of your smartdumb variable.
+
+df_cat <- rbind(edu_table, emp_table)
+
+## create table with kable
+
+tname <- "Univariate Statistics for Categorical Variables"
+titlehead <- c(tname = 3)
+names(titlehead) <- tname
+
+unicat <- df_cat %>% kable(booktabs = T, align = "lcc") %>% 
+    kable_styling(full_width = FALSE) %>%
+    pack_rows("Education", 1 , 3, label_row_css = "background-color: rgb(255, 255, 255); color: black") %>% 
+  ## pack_rows() takes three arguments. First the descriptive label you want for your first variable, second the first row that contains the first category of that variable and third the last row that contains the last category for that variable
+    pack_rows("Employment Sector", 4, 6, label_row_css = "background-color: rgb(255, 255, 255); color: black") %>% 
+    add_header_above(header = titlehead, align = "l", 
+                     background = "rgb(255, 255, 255)", color = "black", 
+                     extra_css = "border-top: solid; border-bottom: double;") %>%
+    column_spec((1:3), background = "rgb(255, 255, 255)", color = "black") %>%
+    row_spec(0, color = "black", background = "rgb(255, 255, 255)", extra_css = "border-bottom: solid;") %>% 
+    row_spec(nrow(df_cat), color = "black", extra_css = "border-bottom: solid;")
+
+unicat
+save_kable(unicat, "univedem.png")
+
+## HTML will show below the code block, the rendered image will show in the RStudio Viewer Pane.
+
+```
+
+
+
+```{r}
+## PUT CODE HERE FOR FOURTH ITEM
+tab_xtab(var.row = dataemp_new$EMP_cat,
+         var.col = dataemp_new$EDUC_cat, 
+         title = "Table: Is there an association between employment sector and education level?",
+         var.labels = c("Employment Sector", "Education Level"),
+         show.cell.prc = TRUE, 
+         show.row.prc = TRUE,
+         show.summary = TRUE, 
+         statistics = "phi",
+         file = "emp-educ.html"
+         )
+```
+
+
+```{r}
+dataemp_new %>% 
+    group_by(EDUC_cat) %>% 
+    summarize(Mean = mean(SalaryUSD),
+              Median = median(SalaryUSD),
+              Min = min(SalaryUSD),
+              Max = max(SalaryUSD),
+              "Standard Deviation" = sd(SalaryUSD),
+              "Standard Error" = sd(SalaryUSD)/ sqrt(length(SalaryUSD)))
+educ_salary_table <- #save the resulting table object
+    dataemp_new %>%
+    mutate(EDUC_cat = fct_relevel(EDUC_cat, "Masters", "Associates", "No degree")) %>% 
+    group_by(EDUC_cat) %>% 
+    summarize(Mean = mean(SalaryUSD),
+              Median = median(SalaryUSD),
+              Min = min(SalaryUSD),
+              Max = max(SalaryUSD),
+              "Standard Deviation" = sd(SalaryUSD),
+              "Standard Error" = sd(SalaryUSD)/ sqrt(length(SalaryUSD)))
+
+#inspect resulting table / df
+educ_salary_table
+flextable(educ_salary_table)
+colnames(educ_salary_table)[1] <- "Education Level"
+
+## create flextable object, save it as base_table
+base_table_GS <- flextable(educ_salary_table)
+
+#autofit() on the base_table_GS object
+autofit(base_table_GS)
+
+base_table_GS <- flextable(educ_salary_table)
+
+btGS2 <- autofit(base_table_GS)
+add_header_lines(btGS2, "Table 1: Salary Statistics by Education Level")
+base_table_GS <- flextable(educ_salary_table)
+# autofit and save as btGS2
+btGS2 <- autofit(base_table_GS)
+# add title, save as btGS3
+btGS3 <- add_header_lines(btGS2, "Table 1: Salary Statistics by Education Level")
+btGS4 <- align(btGS3, align = "center", part = "all", j = 2:3)
+btGS4
+save_as_image(btGS4, path = "educ_salary_table.png")
+
+dataemp_new %>% 
+    group_by(EMP_cat) %>% 
+    summarize(Mean = mean(SalaryUSD),
+              Median = median(SalaryUSD),
+              Min = min(SalaryUSD),
+              Max = max(SalaryUSD),
+              "Standard Deviation" = sd(SalaryUSD),
+              "Standard Error" = sd(SalaryUSD)/ sqrt(length(SalaryUSD)))
+emp_salary_table <- #save the resulting table object
+    dataemp_new %>%
+    mutate(EMP_cat = fct_relevel(EMP_cat, "Federal Government", "State Government", "Local Government")) %>% 
+    group_by(EMP_cat) %>% 
+    summarize(Mean = mean(SalaryUSD),
+              Median = median(SalaryUSD),
+              Min = min(SalaryUSD),
+              Max = max(SalaryUSD),
+              "Standard Deviation" = sd(SalaryUSD),
+              "Standard Error" = sd(SalaryUSD)/ sqrt(length(SalaryUSD)))
+
+#inspect resulting table / df
+emp_salary_table
+flextable(emp_salary_table)
+colnames(emp_salary_table)[1] <- "Employment Sector"
+
+## create flextable object, save it as base_table
+base_table_GS <- flextable(emp_salary_table)
+
+#autofit() on the base_table_GS object
+autofit(base_table_GS)
+
+base_table_GS <- flextable(emp_salary_table)
+
+btGS2 <- autofit(base_table_GS)
+add_header_lines(btGS2, "Table 2: Salary Statistics by Employment Sector")
+base_table_GS <- flextable(emp_salary_table)
+# autofit and save as btGS2
+btGS2 <- autofit(base_table_GS)
+# add title, save as btGS3
+btGS3 <- add_header_lines(btGS2, "Table 2: Salary Statistics by Employment Sector")
+btGS4 <- align(btGS3, align = "center", part = "all", j = 2:3)
+btGS4
+save_as_image(btGS4, path = "emp_salary_table.png")
+
+
+```
+
+
+
+```{r}
+## PUT CODE TO SAVE AND EXPORT GRAPH HERE
+salary_table <- 
+    dataemp_new %>%
+    summarize("Statistic" = "SalaryUSD",
+              Mean = mean(SalaryUSD),
+              Median = median(SalaryUSD),
+              Min = min(SalaryUSD),
+              Max = max(SalaryUSD),
+              "Standard Deviation" = sd(SalaryUSD),
+              "Standard Error" = sd(SalaryUSD)/ sqrt(length(SalaryUSD)))
+
+salary_table
+colnames(educ_table)[1] <- "Category"
+df_cat <- rbind(salary_table)
+
+tname <- "Summary Statistics for Salary (USD)"
+titlehead <- c(tname = 7)
+names(titlehead) <- tname
+
+unicat <- df_cat %>% kable(booktabs = T, align = "lcc") %>% 
+    kable_styling(full_width = FALSE) %>%
+    add_header_above(header = titlehead, align = "l", 
+                     background = "rgb(255, 255, 255)", color = "black", 
+                     extra_css = "border-top: solid; border-bottom: double;") %>%
+    column_spec((1:3), background = "rgb(255, 255, 255)", color = "black") %>%
+    row_spec(0, color = "black", background = "rgb(255, 255, 255)", extra_css = "border-bottom: solid;") %>% 
+    row_spec(nrow(df_cat), color = "black", extra_css = "border-bottom: solid;")
+
+unicat
+save_kable(unicat, "sumsal.png")
+```
+
+```{r}
+anes_sal <- dataemp_new %>% filter(SalaryUSD < 400000) %>% 
+  mutate(EDUC_cat = fct_relevel(EDUC_cat, rev))
+den_educ <- anes_sal %>%
+  ggplot( aes(x=SalaryUSD/1000, fill=EDUC_cat)) +  ## divide income by 1000 to make the axes tick marks more readable.
+    geom_density(alpha=0.6) +
+    scale_fill_manual(values=c("#26d5b8", "#ff5733", "magenta")) +
+    labs(fill= "Education Level",
+         y = "Density",
+         x = "Salary in $1000s",
+         title = "Distribution of Salary by Education Level")
+den_educ
+ggsave("EducSalDen.png")
+den_emp <- anes_sal %>%
+  ggplot( aes(x=SalaryUSD/1000, fill=EMP_cat)) +  ## divide income by 1000 to make the axes tick marks more readable.
+    geom_density(alpha=0.6) +
+    scale_fill_manual(values=c("#26d5b8", "#ff5733", "magenta")) +
+    labs(fill= "Employment Sector",
+         y = "Density",
+         x = "Salary in $1000s",
+         title = "Distribution of Salary by Employment Sector")
+den_emp
+ggsave("EmpSalDen.png")
+
+```
+
+```{r}
+box_educ <- dataemp_new %>% filter(SalaryUSD < 400000) %>% 
+  ggplot(aes(y=SalaryUSD/1000, x = EDUC_cat, fill=EDUC_cat)) +  ## divide income by 1000 to make the axes tick marks more readable.
+    geom_boxplot() +
+    stat_summary(fun = mean, geom = "errorbar", aes(ymax = ..y.., ymin = ..y.., color = "mean"),
+                 width = 0.75, linetype = "solid", size = 2) +  ## this one adds the line that indicates the group mean.
+    scale_fill_manual(values=c("#26d5b8", "#ff5733", "magenta", "blue", "yellow", "purple")) +
+    scale_color_manual(values = "#39ff14")+ ## makes the group mean line green - doing it this way forces it to show in the legend
+    labs(fill= "Education Level",
+         y = "Salary in 1000s",
+         x = "Education Level",
+         color = "Group Mean",
+         title = "Distribution of Salary (USD) by Education Level")
+box_educ
+ggsave("EducSalBox.png")
+
+box_emp <- dataemp_new %>% filter(SalaryUSD< 1500000) %>% 
+  ggplot(aes(y=SalaryUSD/1000, x = EMP_cat, fill=EMP_cat)) +  ## divide income by 1000 to make the axes tick marks more readable.
+    geom_boxplot() +
+    stat_summary(fun = mean, geom = "errorbar", aes(ymax = ..y.., ymin = ..y.., color = "mean"),
+                 width = 0.75, linetype = "solid", size = 1.5) +  ## this one adds the line that indicates the group mean.
+    scale_fill_manual(values=c("#26d5b8", "#ff5733", "purple")) +
+    scale_color_manual(values = "#39ff14")+ ## makes the group mean line green - doing it this way forces it to show in the legend
+    labs(fill= "Employment Sector",
+         y = "Salary in 1000s",
+         x = "Employment Sector",
+         color = "Group Mean",
+         title = "Distribution of Salary (USD) by Employment Sector")
+
+box_emp
+ggsave("EmpSalBox.png")
+```
+```{r}
+dataemp_new %<>% filter(SalaryUSD < 196000)
+summary(dataemp_new$SalaryUSD)
+```
+
+```{r}
+# RUN HOMOGENEITY OF VARIANCE TESTS HERE
+#LeveneTest(DV ~ IV, data = your data frame)
+
+LeveneTest(SalaryUSD ~ EMP_cat, data = dataemp_new)
+LeveneTest(SalaryUSD ~ EDUC_cat, data = dataemp_new)
+LeveneTest(SalaryUSD ~ EMP_cat:EDUC_cat, data = dataemp_new) ## interaction groups
+```
+
+```{r}
+aov(SalaryUSD ~ EMP_cat*EDUC_cat, data = dataemp_new)  
+emp_educ_aov <- aov(SalaryUSD ~ EMP_cat*EDUC_cat, data = dataemp_new)
+summary(emp_educ_aov)
+```
+```{r}
+resid_df <- data.frame(resid = emp_educ_aov$residuals) ## the residuals part of the aov results using $residuals
+
+resid_df %>% ggplot(aes(sample = resid)) +
+  geom_qq_line(color = "red", size = 1) +
+  geom_qq(color = "black") +
+  labs(title = "QQ Plot of Residuals")
+ggsave("qqresid.png")
+
+resid_df %>% ggplot( aes(x=resid)) +  
+    geom_density(fill = "blue") 
+ggsave("qqden.png")
+```
+```{r}
+TukeyHSD(emp_educ_aov)
+```
+
+```{r}
+er_lm <- lm(SalaryUSD ~ EDUC_cat*EMP_cat, data = dataemp_new)
+rsq <- summary(er_lm)$r.squared 
+rsq # proportion
+percent(rsq, accuracy = .01) # percentage
+```
+
+```{r}
+eta2 <- EtaSq(emp_educ_aov) ## give eta-squared the saved anova output
+eta2 # print the entire eta-squared output
+```
+
+```{r}
+cohenf <- sqrt(rsq / (1-rsq))
+cohenf
+```
+
+```{r}
+summary(emp_educ_aov)
+df_aov <- broom::tidy(emp_educ_aov)
+df_aov
+df_aov$term <- c("Employment Sector", "Education Level", "Interaction of Employment Sector and Education Level", "Residuals")
+
+#format columns 3 - 4 (Add commas) 
+df_aov$sumsq <- comma(df_aov$sumsq)
+df_aov$meansq <- comma(df_aov$meansq)
+
+#format F and p-values, convert to character and replace NA with blank string ""
+df_aov$statistic <- formatC(df_aov$statistic, digits = 3, format = "f")
+df_aov$p.value <- formatC(df_aov$p.value, digits = 3, format = "f")
+df_aov[4,5:6] <- ""
+
+#update colnames to PQ
+colnames(df_aov) <- c("Source of Variation", "DF", "Sum of Squares", "Mean Squares", "F-ratio", "p-value")
+tname <- "ANOVA Model: The Impact of Employment Sector and Education Level on Salary (USD)"
+titlehead <- c(tname = 6)
+names(titlehead) <- tname
+
+df_aov %>% kable(booktabs = T, align = "lcrrcc") %>% 
+            kable_styling(full_width = FALSE) %>% 
+            add_header_above(header = titlehead, align = "l",
+                             extra_css = "border-top: solid; border-bottom: double;") %>%
+            row_spec(0, extra_css = "border-bottom: solid;") %>% 
+            row_spec(nrow(df_aov), extra_css = "border-bottom: solid;") %>%
+            save_kable("pq_anova_emed.png") ## save as image
+```
+```{r}
+saveRDS(dataemp_new, "P3_data_Gonzalez.rds") #saving RDS
+```
+

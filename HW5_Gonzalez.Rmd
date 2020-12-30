@@ -1,0 +1,172 @@
+---
+title: 'Homework 5: Two-sample t-tests'
+author: "Marta Gonzalez"
+output:
+  html_notebook: default
+---
+
+This homework will cover just one-sample t-tests.  For this we will use a variable from the General Social Survey(GSS) that reflects the number of hours the respondent worked in the previous week.  We will compare the mean work hours by employee type - Government or Private.
+
+*Use alpha = 0.05 for any hypothesis tests.*
+
+**THERE ARE 23 POINTS TOTAL IN THIS HOMEWORK**
+
+```{r setup}
+library(tidyverse)
+library(DescTools)
+library(pwr)
+library(readxl) #part of tidyverse, but doesn't load on library(tidyverse)
+library(scales) ## for scaling functions for ggplot2
+library(effsize) ## for Cohen's D
+bold.14.text <- element_text(face = "bold", size = 14)
+```
+
+## The Data
+For this lab we're going to use the same workgss.xls file that we did in HW 4.  We'll first load the data and save it as a dataframe called `workdf`
+
+```{r load_data}
+# make sure workgss.xls is in your working directory
+workdf <- read_xls("workgss.xls") ## load the xls file
+glimpse(workdf) ## look at the structure of the dataframe
+```
+
+We're going to look at the `wk_hours` variable which represents the hours the respondent reported working in the last week.  Even though this variable is number of hours worked, it was saved as a character vector because it has some character values - "Not applicable," "No answer," and "Don't know".  I'll remove those and convert the variable to a number.
+
+The two level categorical variable we will use is `emp_type` which indicates if the respondent is a Government or Private employee.  We will see if the distribution of `wk_hours` varies by `emp_type`. `emp_type` also has missing data values - "Not applicable," "No answer," and "Don't know" - that I will remove.
+
+Some quick data cleaning - 
+
+```{r clean_hours}
+workdf <- workdf %>% 
+    ## keep observations that are not these
+    filter(!(wk_hours %in% c("Not applicable", "No answer", "Don't know")) & 
+           !(emp_type %in% c("Not applicable", "No answer", "Don't know"))) %>% 
+    ## change chr wk_hours to num wk_hours
+    mutate(wk_hours = as.numeric(wk_hours)) 
+
+#print summary statistics
+summary(workdf$wk_hours)
+table(workdf$emp_type)
+```
+
+# FIRST - Visualizations
+Let's eyeball the distribution of observations in our sample.
+
+## PART A - create the graph [4 POINTS]
+Use ggplot2 to create one of the graphs from Lab 5 that would be appropriate for these variables to visualize the difference in the two distributions.  Make sure to improve your graph to PQ format.
+
+```{r}
+## PUT GGPLOT CODE HERE
+v <- workdf %>% ggplot(aes(x = emp_type, y = wk_hours, fill = emp_type)) + 
+            geom_violin() +
+            geom_boxplot(width=0.1, fill = "black", color = "blue", size = 2)+
+            scale_fill_manual(values=c("#FF5733", "#26d5b8"))  +
+            labs(fill="Education",
+                 y = "self-rated attractiveness",
+                 x = "",
+                 title = "Distribution of self-rated attractiveness",
+                 subtitle = "By level of education") +
+            theme(legend.position = "none", text = bold.14.text) +
+            stat_summary(fun.y=mean, colour="#ff9934", geom="point", 
+                 shape="circle", size=3) +
+    # add text that indicate the group means
+    stat_summary(fun.y=mean, colour="#ff9934", geom="text", aes(label = round(..y.., digits=1)), 
+                  vjust=1.8, hjust = -0.2, size = 5)+
+            coord_flip()
+v
+```
+
+## PART B - Explain the graph [2 points]
+What does this graph show you about the differences in work hours by employee type?  Does there appear to be a sizeable difference in means?  
+
+** PUT PART B ANSWER HERE **
+There is not a sizeable difference in means. The mean of self-reported work hours in the last week by private employees is 41.5 hours. The mean of self-reported work hours in the last week by government employees is 41.3 hours. There is a .2 hour difference. 
+
+# SECOND - Two-sample t-test
+You will now determine if the mean of wk_hours varies by emp_type.  We are asking if these two group means differ, so there is no directionality in the hypothesis.
+
+## PART A: What are your null and alternative hypotheses? [2 POINTS]
+
+*ENTER YOUR HYPOTHESES HERE*
+** H_0 : 𝜇govt=𝜇priv
+** H_A : 𝜇govt≠𝜇priv
+
+*Prepare and Check Conditions*
+
+Set alpha at 0.05.
+
+The GSS data is randomly sampled and independent observations.
+
+Is our sample data normally distributed - We'll rely on the Central Limit Theorem
+
+Are the variances of each sample equal? We need to check
+
+## PART B: Check homogeneity of variance [1 POINTS]
+Determine if the variance in each sample (each group) is equal.
+
+```{r}
+## RUN VARIANCE TEST HERE
+## use var.test() to test the homogeneity of variances before running t-test
+## var.test(outcomevariable_numeric ~ predictorvariable_categorical)
+var.test(workdf$wk_hours ~ workdf$emp_type)
+```
+
+## PART C: Interpret Variance Test [2 POINTS]
+What is the result of the statistical test of variance - do we reject null?  What does that mean about the equality of variances in our two samples?
+
+**PUT PART C ANSWER HERE**
+Because the p-value is less than than alpha, we reject the null hypothesis. We cannot conclude that the variances are equal, which means we are violating the assumption that the variances are equal. In this case it is not good to reject null. The variances in our two samples are significantly different. 
+
+## PART D: Conduct your analysis [1 POINT]
+Use the appropriate code to run the t-test to determine if the mean of wk_hours varies by emp_type.
+
+```{r mean_t}
+## PUT T.TEST CODE HERE
+t.test(workdf$wk_hours ~ workdf$emp_type, alternative = NULL)
+```
+
+## PART E: Interpret t-test output [4 POINTS]
+Is your result statistically significant? Interpret the result and make a conclusion in statistical language.  What conclusion do you make (in non-statistical language) regarding the difference in means? Make sure to give a detailed answer.
+
+**PUT PART E ANSWER HERE**
+The mean of work hours in the last week in the Private Employment respondent group is 41.46522 hours. TThe mean of work hours in the last week in the Government Employment respondent group is 41.34286 hours. The difference of these means is substantively significant. There is a a 95% CI of the difference of means between the two groups. 
+The confidence interval crosses 0 so the difference in means is not statistically significant because the null hypothesis states that the difference in means is 0.
+The t-value is -.12833. It is negative because the mean of the Government group (first) is lower than the mean of the Private group (second). The degrees of freedom is 388.59.
+The p-value is 0.898, which is higher than an alpha of 0.05. Therefore, we fail to reject the null hypothesis. There is no significant difference in the last week's self-reported work hours by employment type. Employment type is not a factor in how many hours were worked by employees in the last week.
+
+# THIRD - Effect Size
+Now we want to know if the effect is large enough to matter "substantively."
+
+## PART A: Unstandardized [1 POINT]
+In the units of the variable (hours) how large is the difference in means between the two groups of employee type?  Is it substantively significant?
+
+**PUT PART A ANSWER HERE**
+The difference in means between the two groups of employee type is .12236 hours, which is not substantive.
+
+## PART B: Standardized - Cohen's d [1 POINT]
+Calculate Cohen's d for the t-test you conducted above.
+
+```{r mean_es}
+# CALCULATE EFFECT SIZE HERE
+cohen.d(workdf$wk_hours ~ workdf$emp_type)
+```
+
+## PART C: Standardized - R-squared [1 POINT]
+Calculate the r-squared value for the t-test you conducted above.
+
+```{r rsq}
+# CALCULATE RSQUARED HERE
+whours <- t.test(workdf$wk_hours ~ workdf$emp_type)
+# the $statistic of a saved t-test object is the t-value.  The $parameter is the degrees of freedom
+# rsquared of t-test is t-squared over t-squared plus df
+rsq <- whours$statistic^2 / (whours$statistic^2 + whours$parameter)
+names(rsq) <- "r-squared" # re-label the value from t to rsq
+rsq # proportion
+percent(rsq, accuracy = .01) # percentage
+```
+
+## PART D: Substantive Conclusions [4 POINTS]
+What do these standard measure of effect size tell you about the difference in means between the two groups?  Make sure to explain both the Cohen's d and r-squared values.  Does it agree with your conclusion regarding the unstandardized difference? Is your finding substantively significant?
+
+**PUT PART C ANSWER HERE**
+The Cohen's d value is about -.00848 which corresponds with below a small size and has been labeled as negligible. Our r-squared value of 0.00% shows us that employment type explains approximately zero of the variance in the responses of what the self-reported work hours are. This matches the unstandardized conclusion that there is no substantive significance.

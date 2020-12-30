@@ -1,0 +1,572 @@
+---
+title: "Project 4 - Marta Gonzalez"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r setup}
+#load packages
+
+library(tidyverse)# includes ggplot2
+library(grid)
+library(gridExtra)
+library(flextable)
+library(webshot)
+library(dplyr)
+library(magick)
+library(ggpubr) # containes line/dot plot for visualizing means
+library(descr) ## for "pretty" two-way table CrossTable()
+library(kableExtra)
+library(knitr)
+library(scales)
+library(DescTools) ## for phi and cramer's v functions
+library(magrittr)
+library(pwr) ## for power function
+library(sjPlot) ## for tab_xtab
+library(gtrendsR)
+library(car) 
+library(broom)
+library(olsrr)
+options(repr.plot.width=7, repr.plot.height=6)
+```
+
+
+
+```{r}
+library(readxl)
+survey <- read_xlsx("2019_Data_Professional_Salary_Survey_Responses.xlsx")
+glimpse(survey)
+```
+
+
+```{r}
+newnames <- c("Survey Year", "Timestamp", "SalaryUSD", "Country", "PostalCode", "PrimaryDatabase", "YearsWithThisDatabase", "OtherDatabases", "EmploymentStatus", "JobTitle", "ManageStaff", "YearsWithThisTypeOfJob", "HowManyCompanies", "OtherPeopleOnYourTeam", "CompanyEmployeesOverall", "DatabaseServers", "Education", "EducationIsComputerRelated", "Certifications", "HoursWorkedPerWeek", "TelecommuteDaysPerWeek", "PopulationOfLargestCityWithin20Miles", "EmploymentSector", "LookingForAnotherJob", "CareerPlansThisYear", "Gender", "OtherJobDuties", "KindOfTasksPerformed", "Counter")
+
+colnames(survey) <- newnames
+colnames(survey)
+```
+
+
+
+```{r}
+glimpse(survey)
+
+dim(survey) ## print dimensions to show number of columns
+survey_new <- survey %>% drop_na(HoursWorkedPerWeek)
+dim(survey_new) ## print dimensions to show change in number of columns
+sum(is.na(survey_new$HoursWorkedPerWeek))
+
+dim(survey) ## print dimensions to show number of columns
+survey_new <- survey %>% drop_na(Certifications)
+dim(survey_new) ## print dimensions to show change in number of columns
+sum(is.na(survey_new$Certifications))
+
+dim(survey) ## print dimensions to show number of columns
+survey_new <- survey %>% drop_na(SalaryUSD)
+dim(survey_new) ## print dimensions to show change in number of columns
+sum(is.na(survey_new$SalaryUSD))
+
+dim(survey) ## print dimensions to show number of columns
+survey_new <- survey %>% drop_na(EmploymentSector)
+dim(survey_new) ## print dimensions to show change in number of columns
+sum(is.na(survey_new$EmploymentSector))
+
+dim(survey) ## print dimensions to show number of columns
+survey_new <- survey %>% drop_na(Education)
+dim(survey_new) ## print dimensions to show change in number of columns
+sum(is.na(survey_new$Education))
+
+glimpse(survey_new)
+#summary(dataemp_new$SalaryUSD) 
+
+
+```
+
+
+
+```{r}
+survey_new %>% count(EmploymentSector)
+survey_new %>% count(Education)
+survey_new %>% count(EmploymentStatus)
+employ <- c("Federal Gov't", "Local Gov't", "State Gov't")
+educ <- c("Masters", "Associates", "No degree")
+certs <- c("None", "Valid", "Expired")
+
+survey_new %<>% 
+  filter(!EmploymentSector %in% c("Private business", "Student", "EmploymentSector", "Non-profit", "Education (K-12, college, university)"))
+survey_new %<>% 
+  filter(!Education %in% c("Bachelors (4 years)", "Doctorate/PhD"))
+
+dim(survey_new)
+survey_new %>% count(EmploymentSector)
+dim(survey_new)
+survey_new %>% count(Education)
+dim(survey_new)
+survey_new %>% count(Certifications)
+
+
+## create factor with labels
+survey_new %<>% mutate(EMP_cat = factor(EmploymentSector, labels = employ))
+survey_new %<>% mutate(EDUC_cat = factor(Education, labels = educ))
+survey_new %<>% mutate(CERT_cat = factor(Certifications, labels = certs))
+
+summary(survey_new$HoursWorkedPerWeek)
+```
+
+
+```{r}
+survey_table1 <- 
+    survey_new %>%
+    summarize("Statistic" = "SalaryUSD",
+              Mean = mean(SalaryUSD),
+              Median = median(SalaryUSD),
+              Min = min(SalaryUSD),
+              Max = max(SalaryUSD),
+              "Standard Deviation" = sd(SalaryUSD),
+              "Standard Error" = sd(SalaryUSD)/ sqrt(length(SalaryUSD)))
+survey_table2 <- 
+    survey_new %>%
+    summarize("Statistic" = "Hours Worked Per Week",
+              Mean = mean(HoursWorkedPerWeek),
+              Median = median(HoursWorkedPerWeek),
+              Min = min(HoursWorkedPerWeek),
+              Max = max(HoursWorkedPerWeek),
+              "Standard Deviation" = sd(HoursWorkedPerWeek),
+              "Standard Error" = sd(HoursWorkedPerWeek)/ sqrt(length(HoursWorkedPerWeek)))
+
+
+survey_table1
+survey_table2
+colnames(survey_table1)[1] <- "Category"
+colnames(survey_table2)[1] <- "Category"
+df_cat <- rbind(survey_table1, survey_table2)
+
+tname <- "Summary Statistics for Salary (USD) and Hours Worked Per Week"
+titlehead <- c(tname = 7)
+names(titlehead) <- tname
+
+unicat <- df_cat %>% kable(booktabs = T, align = "lcc") %>% 
+    kable_styling(full_width = FALSE) %>%
+    add_header_above(header = titlehead, align = "l", 
+                     background = "rgb(255, 255, 255)", color = "black", 
+                     extra_css = "border-top: solid; border-bottom: double;") %>%
+    column_spec((1:7), background = "rgb(255, 255, 255)", color = "black") %>%
+    row_spec(0, color = "black", background = "rgb(255, 255, 255)", extra_css = "border-bottom: solid;") %>% 
+    row_spec(nrow(df_cat), color = "black", extra_css = "border-bottom: solid;")
+
+unicat
+save_kable(unicat, "sumsalhour.png")
+```
+
+
+```{r}
+emp_table <- 
+    survey_new %>%
+    mutate(EMP_cat = fct_relevel(EMP_cat,"Federal Gov't", "State Gov't", "Local Gov't"))  %>% 
+    group_by(EMP_cat) %>% 
+    summarize(Frequency = n(), 
+    Percentage = n() / dim(survey_new)[1])  %>% 
+    mutate(Percentage = paste0(format(Percentage * 100, digits = 2), "%")) 
+
+emp_table
+edu_table <- 
+    survey_new %>%
+    mutate(EDUC_cat = fct_relevel(EDUC_cat, "Masters", "Associates", "No degree"))  %>% 
+    group_by(EDUC_cat) %>% 
+    summarize(Frequency = n(), 
+    Percentage = n() / dim(survey_new)[1])  %>% 
+    mutate(Percentage = paste0(format(Percentage * 100, digits = 2), "%")) 
+
+edu_table
+cert_table <- 
+    survey_new %>%
+    mutate(CERT_cat = fct_relevel(CERT_cat, "Valid", "Expired", "None"))  %>% 
+    group_by(CERT_cat) %>% 
+    summarize(Frequency = n(), 
+    Percentage = n() / dim(survey_new)[1])  %>% 
+    mutate(Percentage = paste0(format(Percentage * 100, digits = 2), "%")) 
+
+cert_table
+
+#make sure the first column name in each of the two dfs is "Category" and not the name of the variable (which is the default)
+colnames(emp_table)[1] <- "Category"
+colnames(edu_table)[1] <- "Category"
+colnames(cert_table)[1] <- "Category"
+
+## combine the two dataframes into one combined dataframe using rbind().  Your educ variable should be "stacked" on top of your smartdumb variable.
+
+df_cat <- rbind(emp_table, edu_table, cert_table)
+
+## create table with kable
+
+tname <- "Univariate Statistics for Categorical Variables"
+titlehead <- c(tname = 3)
+names(titlehead) <- tname
+
+unicat <- df_cat %>% kable(booktabs = T, align = "lcc") %>% 
+    kable_styling(full_width = FALSE) %>%
+    pack_rows("Education", 1 , 3, label_row_css = "background-color: rgb(255, 255, 255); color: black") %>% 
+  ## pack_rows() takes three arguments. First the descriptive label you want for your first variable, second the first row that contains the first category of that variable and third the last row that contains the last category for that variable
+    pack_rows("Employment Sector", 4, 6, label_row_css = "background-color: rgb(255, 255, 255); color: black") %>%
+  pack_rows("Certifications", 7, 9, label_row_css = "background-color: rgb(255, 255, 255); color: black") %>%
+    add_header_above(header = titlehead, align = "l", 
+                     background = "rgb(255, 255, 255)", color = "black", 
+                     extra_css = "border-top: solid; border-bottom: double;") %>%
+    column_spec((1:3), background = "rgb(255, 255, 255)", color = "black") %>%
+    row_spec(0, color = "black", background = "rgb(255, 255, 255)", extra_css = "border-bottom: solid;") %>% 
+    row_spec(nrow(df_cat), color = "black", extra_css = "border-bottom: solid;")
+
+unicat
+save_kable(unicat, "univcatp4.png")
+```
+
+
+```{r}
+scatter_hours <- survey_new %>% filter(SalaryUSD < 167340.6) %>% filter(HoursWorkedPerWeek < 46) %>% filter(HoursWorkedPerWeek > 36) %>%
+  ggplot(aes(x = HoursWorkedPerWeek, y = SalaryUSD/1000)) +
+            geom_point() +
+            geom_smooth(method = "lm") +
+            labs(x = "Hours Worked Per Week",
+                 y = "Salary (USD) ")
+scatter_hours
+
+```
+
+
+```{r}
+box_educ <- survey_new %>% filter(SalaryUSD < 167340.6) %>%
+  ggplot(aes(y=SalaryUSD/1000, x = EDUC_cat, fill=EDUC_cat)) +  ## divide income by 1000 to make the axes tick marks more readable.
+    geom_boxplot() +
+    scale_fill_manual(values=c("#26d5b8", "#ff5733", "purple")) +
+    labs(fill= "Education Level",
+         y = "Salary in 1000s",
+         x = "Education Level",
+         color = "Group Mean")+
+  theme(legend.title = element_blank(), ## remove legend title
+          legend.position="bottom", ## move legend 
+        legend.text = element_text(size = 8),
+          axis.text.x = element_blank(), ## remove x-axis tick text
+          axis.ticks = element_blank())  ## remove x-axis ticks
+box_educ
+ggsave("SalEducBox4.png")
+
+box_emp <- survey_new %>% filter(SalaryUSD < 167340.6) %>%
+  ggplot(aes(y=SalaryUSD/1000, x = EMP_cat, fill=EMP_cat)) +  ## divide income by 1000 to make the axes tick marks more readable.
+    geom_boxplot() +
+    scale_fill_manual(values=c("#26d5b8", "#ff5733", "purple")) +
+    labs(fill= "Employment Sector",
+         y = "Salary in 1000s",
+         x = "Employment Sector",
+         color = "Group Mean")+
+  theme(legend.title = element_blank(), ## remove legend title
+          legend.position="bottom", ## move legend 
+        legend.text = element_text(size = 8),
+          axis.text.x = element_blank(), ## remove x-axis tick text
+          axis.ticks = element_blank())  ## remove x-axis ticks
+
+box_emp
+ggsave("EmpSalBox4.png")
+
+box_cert <- survey_new %>% filter(SalaryUSD < 167340.6) %>% 
+  ggplot(aes(y=SalaryUSD/1000, x = CERT_cat, fill=CERT_cat)) +  ## divide income by 1000 to make the axes tick marks more readable.
+    geom_boxplot() +
+    scale_fill_manual(values=c("#26d5b8", "#ff5733", "purple")) +
+    labs(fill= "Certifications",
+         y = "Salary in 1000s",
+         x = "Certifications",
+         color = "Group Mean")+
+  theme(legend.title = element_blank(), ## remove legend title
+          legend.position="bottom", ## move legend 
+        legend.text = element_text(size = 8),
+          axis.text.x = element_blank(), ## remove x-axis tick text
+          axis.ticks = element_blank())  ## remove x-axis ticks
+
+box_cert
+ggsave("CertSalBox4.png")
+
+grid.arrange(scatter_hours, box_emp, box_educ, box_cert, ncol = 2, 
+             top = textGrob("Possible predictors of Salary (USD)",gp=gpar(fontsize=20))) 
+g <- arrangeGrob(scatter_hours, box_emp, box_educ, box_cert, ncol = 2, 
+                top = textGrob("Possible predictors of Salary (USD)",gp=gpar(fontsize=20))) 
+ggsave(file="arrangep4.png", g, scale = 2) #saves g
+
+```
+
+
+```{r}
+
+mod5 <- lm(SalaryUSD ~ HoursWorkedPerWeek, data = survey_new)
+resfit <- data.frame(resid = mod5$residuals, 
+                     fitted = mod5$fitted.values)
+summary(mod5)
+plot(mod5, which = 2)
+resfit %>% ggplot(aes(sample = resid)) +
+  geom_qq_line(color = "red", size = 1) +
+  geom_qq(color = "black") +
+  labs(title = "QQ Plot of Residuals")
+ggsave("qq5p4.png")
+plot(mod5, which = 5)
+reslevplot <- ols_plot_resid_lev(mod5) + labs(title = "Model 5: Residuals vs. Leverage")
+reslevplot
+ggsave("lev5p4.png")
+plot(mod5, which = c(1,3))
+
+#plot with ggplot
+resfit %>% ggplot(aes(x = fitted, y = resid)) +
+            geom_point() +
+            geom_smooth(color = "red", se = FALSE) + 
+            ## do not use method = "lm" - we want to see possible curvilinear relationships
+            ## se = FALSE because we don't need CI around line.
+            labs(x = "Fitted Values",
+                 y = "Residuals",
+                 title = "Model 5: Residuals vs. Fitted")
+ggsave("fit5p4.png")
+ols_test_breusch_pagan(mod5)
+survey2 <- survey_new %>% mutate(hoursq = HoursWorkedPerWeek^2)
+
+
+survey2 <- survey2[-c(222, 114, 117), ] # remove rows by row number
+mod7 <- lm(SalaryUSD ~ HoursWorkedPerWeek + hoursq, data = survey2)
+reslevplot <- ols_plot_resid_lev(mod7) + labs(title = "Model 7: Residuals vs. Leverage")
+reslevplot
+ggsave("newmod7plotlev.png")
+plot(mod5)
+
+```
+
+```{r}
+
+# format the model output as a dataframe using tidy
+tidy_mod5 <- tidy(mod5)
+
+# update the "term" to PQ 
+tidy_mod5$term <- c("Intercept", "Hours Worked Per Week")
+# round estimate, std.error, and statistic to 2 or 3 decimal places
+tidy_mod5$estimate <- round(tidy_mod5$estimate, 3)
+tidy_mod5$std.error <- round(tidy_mod5$std.error, 3)
+tidy_mod5$statistic <- round(tidy_mod5$statistic, 2)
+
+# convert p-values to either < 0.001 or actual value if higher than 0.001.
+tidy_mod5 %<>% mutate(p.value = ifelse(p.value < 0.001, #logical
+                                       "< 0.001",  #value if true
+                                       format(p.value, scientific = FALSE, nsmall = 3, digits = 0))) #value if false
+
+# rename columns
+colnames(tidy_mod5) <- c("Predictor", "Estimate", "Std. Error", "t-statistic", "p-value")
+
+tname <- "Model 5: Characteristics associated with Salary Earnings"
+titlehead <- c(tname = 5)
+names(titlehead) <- tname
+
+#create footnote with n, r-squared, and F-test
+mod_foot <- paste0("n = ",
+                    nrow(survey_new),
+                    ". r-squared = ",
+                    round(summary(mod5)$adj.r.squared, 2),
+                    ", F(",
+                    summary(mod5)$fstatistic[2], ",", summary(mod5)$fstatistic[3],
+                    ") = ", round(summary(mod5)$fstatistic[1], 2),
+                    ".")
+ref_foot <- "Reference levels are Hours Worked Per Week"
+
+tidy_mod5 %>% kable(booktabs = T, align = "rcccc") %>% 
+                kable_styling(full_width = FALSE) %>% 
+                add_header_above(header = titlehead, align = "l",
+                     extra_css = "border-top: solid; border-bottom: double;") %>%
+                row_spec(0, extra_css = "border-bottom: solid;") %>% 
+                row_spec(nrow(tidy_mod5), extra_css = "border-bottom: solid;")  %>% 
+                footnote(general = c(ref_foot, mod_foot)) %>% 
+                save_kable("mod5p4.png")
+```
+
+
+
+```{r}
+mod6 <- lm(SalaryUSD ~ HoursWorkedPerWeek + EMP_cat + EDUC_cat +CERT_cat, data = survey_new)
+summary(mod6)
+resfit <- data.frame(resid = mod6$residuals, 
+                     fitted = mod6$fitted.values)
+plot(mod6, which = 2)
+resfit %>% ggplot(aes(sample = resid)) +
+  geom_qq_line(color = "red", size = 1) +
+  geom_qq(color = "black") +
+  labs(title = "QQ Plot of Residuals")
+ggsave("QQp4.png")
+plot(mod6, which = 5)
+reslevplot <- ols_plot_resid_lev(mod6) + labs(title = "Model 6: Residuals vs. Leverage")
+reslevplot
+ggsave("leverp4.png")
+plot(mod6, which = c(1,3))
+
+
+#plot with ggplot
+resfit %>% ggplot(aes(x = fitted, y = resid)) +
+            geom_point() +
+            geom_smooth(color = "red", se = FALSE) + 
+            ## do not use method = "lm" - we want to see possible curvilinear relationships
+            ## se = FALSE because we don't need CI around line.
+            labs(x = "Fitted Values",
+                 y = "Residuals",
+                 title = "Model 6: Residuals vs. Fitted")
+ggsave("fitp4.png")
+plot(mod6, which = 1)
+vif(mod6)
+ols_vif_tol(mod6)
+```
+
+```{r}
+# format the model output as a dataframe using tidy
+tidy_mod6 <- tidy(mod6)
+
+# update the "term" to PQ 
+tidy_mod6$term <- c("Intercept", "Hours Worked Per Week", "Local Government", "State Government", "Associates Degree", "No degree", "Valid Certifications", "Expired Certifications")
+# round estimate, std.error, and statistic to 2 or 3 decimal places
+tidy_mod6$estimate <- round(tidy_mod6$estimate, 3)
+tidy_mod6$std.error <- round(tidy_mod6$std.error, 3)
+tidy_mod6$statistic <- round(tidy_mod6$statistic, 2)
+
+# convert p-values to either < 0.001 or actual value if higher than 0.001.
+tidy_mod6 %<>% mutate(p.value = ifelse(p.value < 0.001, #logical
+                                       "< 0.001",  #value if true
+                                       format(p.value, scientific = FALSE, nsmall = 3, digits = 0))) #value if false
+
+# rename columns
+colnames(tidy_mod6) <- c("Predictor", "Estimate", "Std. Error", "t-statistic", "p-value")
+
+tname <- "Model 6: Characteristics associated with Salary Earnings"
+titlehead <- c(tname = 5)
+names(titlehead) <- tname
+
+#create footnote with n, r-squared, and F-test
+mod_foot2 <- paste0("n = ",
+                    nrow(survey_new),
+                    ". r-squared = ",
+                    round(summary(mod6)$adj.r.squared, 2),
+                    ", F(",
+                    summary(mod5)$fstatistic[2], ",", summary(mod6)$fstatistic[3],
+                    ") = ", round(summary(mod6)$fstatistic[1], 2),
+                    ".")
+ref_foot2 <- "Reference levels are Hours Worked Per Week, Employment Sector, Education Level and Certifications."
+
+tidy_mod6 %>% kable(booktabs = T, align = "rcccc") %>% 
+                kable_styling(full_width = FALSE) %>% 
+                add_header_above(header = titlehead, align = "l",
+                     extra_css = "border-top: solid; border-bottom: double;") %>%
+                row_spec(0, extra_css = "border-bottom: solid;") %>% 
+                row_spec(nrow(tidy_mod6), extra_css = "border-bottom: solid;")  %>% 
+                footnote(general = c(ref_foot2, mod_foot2)) %>% 
+                save_kable("mod6p4.png")
+```
+
+
+
+```{r}
+anova(mod5, mod6)
+  
+```
+
+
+```{r}
+
+employ <- c("Federal Gov't", "Local Gov't", "State Gov't")
+
+certs <- c("None", "Expired")
+
+survey_new %<>% 
+  filter(!Certifications %in% c("Yes, and they're currently valid"))
+
+survey_new %<>% mutate(CERT_cat = factor(Certifications, labels = certs))
+
+```
+
+
+```{r}
+mod8 <- lm(SalaryUSD ~ EMP_cat + CERT_cat, data = survey_new)
+summary(mod8)
+resfit <- data.frame(resid = mod8$residuals, 
+                     fitted = mod8$fitted.values)
+plot(mod8, which = 2)
+resfit %>% ggplot(aes(sample = resid)) +
+  geom_qq_line(color = "red", size = 1) +
+  geom_qq(color = "black") +
+  labs(title = "QQ Plot of Residuals")
+ggsave("QQp8.png")
+plot(mod8, which = 5)
+reslevplot <- ols_plot_resid_lev(mod8) + labs(title = "Model 8: Residuals vs. Leverage")
+reslevplot
+ggsave("leverp8.png")
+plot(mod8, which = c(1,3))
+
+#plot with ggplot
+resfit %>% ggplot(aes(x = fitted, y = resid)) +
+            geom_point() +
+            geom_smooth(color = "red", se = FALSE) + 
+            ## do not use method = "lm" - we want to see possible curvilinear relationships
+            ## se = FALSE because we don't need CI around line.
+            labs(x = "Fitted Values",
+                 y = "Residuals",
+                 title = "Model 8: Residuals vs. Fitted")
+ggsave("fitp8.png")
+plot(mod8, which = 1)
+vif(mod8)
+```
+
+
+
+
+```{r}
+# format the model output as a dataframe using tidy
+tidy_mod8 <- tidy(mod8)
+
+# update the "term" to PQ 
+tidy_mod8$term <- c("Intercept", "Local Government", "State Government","Expired Certifications")
+# round estimate, std.error, and statistic to 2 or 3 decimal places
+tidy_mod8$estimate <- round(tidy_mod8$estimate, 3)
+tidy_mod8$std.error <- round(tidy_mod8$std.error, 3)
+tidy_mod8$statistic <- round(tidy_mod8$statistic, 2)
+
+# convert p-values to either < 0.001 or actual value if higher than 0.001.
+tidy_mod8 %<>% mutate(p.value = ifelse(p.value < 0.001, #logical
+                                       "< 0.001",  #value if true
+                                       format(p.value, scientific = FALSE, nsmall = 3, digits = 0))) #value if false
+
+# rename columns
+colnames(tidy_mod8) <- c("Predictor", "Estimate", "Std. Error", "t-statistic", "p-value")
+
+tname <- "Model 8: Characteristics associated with Salary Earnings"
+titlehead <- c(tname = 5)
+names(titlehead) <- tname
+
+#create footnote with n, r-squared, and F-test
+mod_foot3 <- paste0("n = ",
+                    nrow(survey_new),
+                    ". r-squared = ",
+                    round(summary(mod8)$adj.r.squared, 2),
+                    ", F(",
+                    summary(mod8)$fstatistic[2], ",", summary(mod8)$fstatistic[3],
+                    ") = ", round(summary(mod8)$fstatistic[1], 2),
+                    ".")
+ref_foot3 <- "Reference levels are Employment Sector and Certifications."
+
+tidy_mod8 %>% kable(booktabs = T, align = "rcccc") %>% 
+                kable_styling(full_width = FALSE) %>% 
+                add_header_above(header = titlehead, align = "l",
+                     extra_css = "border-top: solid; border-bottom: double;") %>%
+                row_spec(0, extra_css = "border-bottom: solid;") %>% 
+                row_spec(nrow(tidy_mod8), extra_css = "border-bottom: solid;")  %>% 
+                footnote(general = c(ref_foot3, mod_foot3)) %>% 
+                save_kable("mod8p4.png")
+```
+
+
+```{r}
+anova(mod8)
+anova(mod6)
+```
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
